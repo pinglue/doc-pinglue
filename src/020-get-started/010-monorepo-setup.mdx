@@ -1,0 +1,90 @@
+---
+title: Setup Pinglue monorepo
+id: monorepo-setup
+---
+
+<Note>This guide is for developers you plan to use the Pinglue packages directly and/or develop them. For normal use of Pinglue packages you can just use `npm install` (or `yarn add`). For more info refer to [this guide](id:normal-installation) </Note>
+
+<Tip> Since this monorepo is a Lerna monorepo, it is recommended you install lerna CLI globally (just go `npm install lerna -g`). For more info refer to [Lerna documentation](https://github.com/lerna/lerna) </Tip>
+
+
+
+### 1. Clone the Pinglue monorepo:
+
+```shell
+git clone ...
+```
+
+Note that this is a Lerna monorepo. For more information about Lerna monorepos, their structures and Lerna CLI refer to [Lerna documentation](https://github.com/lerna/lerna).
+
+
+### 2. Install the npm packages of the monorepo:
+
+*from monorepo root*
+```shell
+npm install
+```
+
+
+### 3. Bootstrap the monorepo
+
+*from monorepo root*
+```shell
+npm run bt
+```
+
+<Warn> This might take a while! </Warn>
+
+
+### 4. Build the typescript source code for all packages:
+
+*from monorepo root*
+```
+npm run build-ts
+```
+
+You should see all success messages.
+
+
+### 5. Test if pinglue works (optional)
+
+If you were refereed here by another guide in order to setup a Pinglue monorepo on your local machine then you are done here, and can safely return to the rest of your current guide.
+
+In the rest of this step we are going to create an empty project and test whether Pinglue works on it or not. This is useful specially if you are using Pinglue for the first time. 
+
+At the moment the monorepo contains a number of starter templates found at `/templates`. Looking into this folder, you will find the *empty-project* template. To create a copy of this template into your monorepo:
+
+*from monorepo root*
+```
+npm run new @test/my-test-project -- -t empty-project
+```
+
+This should create a folder at `packages/@test/my-test-project` with some files in it. Now bootstrap the monorepo again to include this new package as well:
+
+```
+npm run bt
+```
+
+Now go to the new project package and run:
+
+*from `packages/@test/my-test-project`*
+```
+npx pg run 
+```
+ 
+You should see a series of logs (and no error!), which will end with the statement *Starting the hub ...*. That's it, a simple Pinglue hub just ran on your machine!
+
+<Tip>The new folder `@test` you just made inside the packages folder will not be included in the monorepo. The gitignore rules are set so that only pinglue and @pinglue packages (along with auxiliary *scripts*) are included in the repo. You can exploit this arrangement to clone packages from other repositories into tha *packages* folder to bootstrap your project. More on this in the next section.  </Tip>
+
+### 6. Add additional packages/monorepos (optional)
+
+As you noticed the current packages folder has a group of essential all-purpose Pinglue packages. For your development you most likely need more packages from other repositories and sources. (Remember, Pinglue is all about packages!) 
+
+For example if you use Pinglue for web development you most like need *pgweb* framework packages. In addition to pgweb and other third party package or packages, you also may have your own private packages for your customized purposes. 
+
+So how to add additional packages or monorepos (groups of packages) to our newly cloned Pinglue monorepo? 
+
+Clone packages/monorepos directly into the package folder of the Pinglue monorepo. As mentioned before, the gitignore rules are set so that only pinglue and @pinglue packages (along with auxiliary *scripts*) are included in the repo. So the new folders you create within the monorepo *packages* folder will not conflict with the monorepo git history, and they need to have their own git setup.
+
+<Warn>One caveat of this approach is that some IDE, most notably VSCode which is used by most of us, will not pickup the git setup for the repos that you clone inside the *packages* folder (probably because they are added to the gitignore of the root folder) That means if you want to work on the Pinglue monorepo simultaneously with third party packages then your IDE only shows git commands for the Pinglue monorepo, and for all other packages/monorepos inside the *packages* folder you will need to use command line git - To solve this problem: do not add the Pinglue monorepo to your IDE, just add the folders that you need from the packages folder of this monorepo</Warn>
+

@@ -1,0 +1,267 @@
+---
+title: Channels
+---
+
+The app we bootstrapped in the previous section simply calls the two life cycle methods of each controller, and then it finishes.
+
+We definitely want something more than running methods in each controller individually. What we really want is a way for controllers to communicate with each other, and use each other's services and capabilities. 
+
+The official way for controllers to communicate with each other in a Pinglue system is through what is  called *channel*.
+
+Channel overview
+----------------------
+
+Channel uses a kind of pub/sub mechanism to allow communication. 
+
+A channel is merely a set of functions, which are called *handlers*. Each handler is added, or in Pinglue jargon *glued*, to the channel by a controller connected to the hub. The channel object itself lives in the hub and is controlled by the hub.
+
+Now every controller, in addition to being able to add handlers to a channel, can also *run* the channel. Running a channel will cause all the handlers glued to that channel to run. The ultimate outcome of the channel will be computed from the set of return values of individual handlers based on some *reducer* function.
+
+Lets create a channel called *greeting* in our hello-world app.
+
+Creating channel *greeting*
+--------------------------------
+Class controller has a method *glue* which allow a controller to glue a handler to channel. In the code below, we modify the route *route1* controller of the package *@hello-world/hello-pl* to glue a handler function to a channel called *greeting*:
+
+*@hello-world/hello-pl/lib/route1/index.js*
+```javascript
+import {Controller} from "pinglue";
+
+export default class extends Controller {
+
+    /**
+     * Life cycle method: is called during the init phase
+     */
+    async init() {
+        console.log("Hello world! Package 1 at route 1 just initialized!");
+
++       // gluing a handler to channel greetings
++       this.glue(
++           "greetings",
++           this.greetingHandler.bind(this)
++       );
++   }
+
++   async greetingHandler(params, value) {
++       return {
++           [this.id]: "I hope you are well!"
++       };
++   }
+
+    /**
+     * Life cycle method: is called during the start phase
+     */
+    async start() {
+        console.log("Hello world! Package 1 at route 1 just started!");
+    }
+    
+}
+```
+The main part of the above code is the controller's *glue* method which we used to glue a handler to channel *greetings*. 
+
+In fact we don't really need to *create* a channel. We can just glue handlers to any channel. If it does not exist it will be created automatically. So the above code kind of creates channel *greeting* within the hub for us.
+
+
+Running channel *greetings*
+-------------------------------
+
+Before discussing more details on how channel *greeting* works, lets *run* this channel from another plugin, say our third plugin, and observe the outcome:
+
+*@hello-world/hello-pl3/lib/route1/index.js*
+```javascript
+import {Controller} from "pinglue";
+
+export default class extends Controller {
+
+    /**
+     * Life cycle method: is called during the init phase
+     */
+    async init() {
+        console.log("Hello world! Package 3 at route 1 just initialized!");
+    }
+
+    /**
+     * Life cycle method: is called during the start phase
+     */
+    async start() {
+        console.log("Hello world! Package 3 at route 1 just started!");
+
++       // running channel "greetings" asynchronously
++       const channelOutcome = await this.runA(
++           "greetings",
++           {param1: "x", param2: "y"},
++           {value1: "x", value2: "y"}
++       );
+
++       console.log(
++           "The outcome of channel greetings:",
++           channelOutcome
++       );
+    }
+    
+}
+```
+Note that we used the method *runA* to run the channel asynchronously (here the last capital A stands for *async*). 
+
+<Tip>
+We can run each channel either asynchronously (using *runA* method) or synchronously (using *runS* method). The async variation is more common, and in this tutorial we focus on this method.
+</Tip>
+
+Now run the app (at route `route1`) to observe the result. You should see that the outcome of the channel is:
+
+```javascript
+{
+    value1: 'x', 
+    value2: 'y', 
+    'hello-pl': 'I hope you are well!' 
+}
+```
+
+How channel "greeting" works?
+-------------------------------
+Now lets analyze in details what channel *greeting* exactly do when it is run and how it ended up calculating the object as shown above.
+
+The first plugin (*@hello-world/hello-pl*) glues a handler function to the channel *greeting* at the init phase. It is worth mentioning that handlers are to be glued *ONLY* at the init phase (more on this will be discussed later). 
+
+To run a channel, say using *runA* method, the caller passes tow arguments to the channel: 1. params, 2. value. So the signature of method *runA* (as well as *runS*) would be 
+
+```javascript
+runA(params, value)
+```
+
+Both params and value arguments can be any type (number, string, Object, etc.). In out example above, the plugin *@hello-world/hello-pl3* runs the channel *greeting* with `params={param1: "x", param2: "y"}` and `value={value1: "x", value2: "y"}`. The exact role and differences between params and value will be discussed in a moment. For now just read on.
+
+When a channel is run, it calls all its handlers and passes the params and value arguments to them (as is clear from the signature of the method *greetingHandler* in *@hello-world/hello-pl/lib/route1/index.js*). Since we use *runA* method, the channel will call all its handlers in asynchronous way simultaneously (similar to what `Promise.all` does). 
+
+The final outcome of the channel (if there is any), will be calculated based on the return value of its handlers based on some internal function which is called *reducer*. 
+
+<Tip>In computer science, a reducer is any function that converts a set of values to a single value (and thus it is called a reducer). A simple example could be the *sum* function which converts a set of numbers to their sum, like `3,4,5 -> 12`</Tip>
+
+Since we did not set any reducer function for the channel *greeting*, it will use the default reducer function, which is called *object-merge*. As the name suggest it uses the regular object merge operation (deep object merge) to merge the outcome of all the handlers to the initial value used to run the channel. 
+
+<Tip>Most channels you use in a Pinglue system will use the default object-merge reducer. Still in some highly particular situation you might need to write your own customized reducer for a channel. </Tip>
+
+In the above case of "greeting" channel, the only handler of this channel is the method *greetingHandler* (from the first plugin) which returns the object `{[this.id]: "I hope you are well!"}`. As a side note, the property *this.id* in each controller returns its package id as defined in the *pg.yaml* file. So in this case, the returning object would be the object `{"hello-pl": "I hope you are well!"}`. 
+
+The initial value with which the channel *greetings* is called in the third plugin is the object `{value1: "x", value2: "y"}`. 
+
+Now the channel reducer (i.e., the *object-merge* function) will merge the handler's return object into the initial value object, and the final result becomes the merge of two object basically:
+
+```javascript
+{
+    value1: 'x', 
+    value2: 'y', 
+    'hello-pl': 'I hope you are well!' 
+}
+```
+
+What if we glue another handler to channel "greeting"? Well its outcome will merge to the above object as well. Lets try it:
+
+
+Gluing another handler to channel "greeting"
+----------------------------------------------
+
+Modify the second plugin to add another greeting message to the final app greeting object:
+
+*@hello-world/hello-pl2/lib/route1/index.js*
+```javascript
+import {Controller} from "pinglue";
+
+export default class extends Controller {
+
+    /**
+     * Life cycle method: is called during the init phase
+     */
+    async init() {
+        console.log("Hello world! Package 2 at route 1 just initialized!");
+
+        // gluing a handler to channel greetings
+        this.glue(
+            "greetings",
+            this.greetingHandler.bind(this)
+        );
+    }
+
+    async greetingHandler(params, value) {
+        return {
+            [this.id]: "Have an awesome day!"
+        };
+    }
+
+    /**
+     * Life cycle method: is called during the start phase
+     */
+    async start() {
+        console.log("Hello world! Package 2 at route 1 just started!");
+    }
+    
+}
+```
+
+Now run the app at route *route1*, you should see the following outcome as expected:
+
+```javascript
+{
+  value1: 'x',
+  value2: 'y',
+  'hello-pl': 'I hope you are well!',
+  'hello-pl2': 'Have an awesome day!'
+}
+```
+
+<Tip>
+    Object-merge reducer *alters* the value object passed by the caller. In fact, the outcome of handlers will be merged directly into it. So in the above we don't really need to save the channel outcome in a separate object; we could just pass an object to *runA* as the value argument and print that object. The result would be same.
+</Tip>
+
+
+Params and value
+---------------------------
+In the above example, both channel handlers do not use the arguments *params* and *value*. This is because we wanted to keep the examples as simple as possible and avoid unnecessary branching and loops. 
+
+But in a more realistic settings both arguments would be very needed. 
+
+The argument *params* is a kind of *input* for the handlers. For example, for a channel *login-up* which is supposed to login a user based on username/password the param could have such fields as username, password, rememberMe, etc.
+
+On the other hand the argument *value* is the initial value that is used by the channel runner, and will be used by the reducer to reduce the outcome of all the channel handlers into one value. 
+
+Technically speaking, *value* is also part of the input, and thus should be part of the *param*. The reason that we separate *value* as a separate argument is because it has a special role in the channel's reducer; in fact this value is one of the inputs of the channel's reducer, while other fields in the *params* are not.
+
+<Warn>
+    Do not attempt to modify the value directly from a handler. It will fail! Both params and value arguments are *deep-frozen* objects, meaning no change can be made to them. Pinglue has strict rules to separate data space of different plugins to minimize the bugs that come from side effects and unintentional overwriting. These bugs are hardest to fix! To affect the value passed by the channel runner simply return a value in your handler and leave the rest to the channel reducer to affect the value.
+</Warn>
+
+In contrast to *params*, the argument *value* might not very needed 
+
+Understanding channels
+---------------------------
+The above examples opens up more intuitions regarding channels in a Pinglue system:
+
+### Channels are extendable
+
+The channel "greeting" can return more greeting statements if we install more plugins on our project which glue to this channel. (This action is called *extending* a channel by the way)
+
+### Channels as the entry point of new features
+
+The idea behind Pinglue is, that you can add a new feature to your app right out of box by simply installing a plugin on it using `npm install`. The new installed plugin creates some new channels and/or extending the existing channels to enhance and enrich your app.
+
+For example you install the plugin *@pgweb/login-pl* to your web app which creates a new channel *login-up*. This channel can be run by any other plugin to login the user by username/password (the suffix up stands for Username Password).
+
+Another example could be an existing channel called *is-form-spam* in your app, which as its name suggests, decide whether the submitted form is a spam. Now you may install different security plugins, each glues a handler to this channel which returns a number between 0 and 1 to indicate the probability of the submitted form being a spam (0 means 0% spam and 1 means 100% spam). The reducer function for this channel can be either the average function (liberal) or the maximum function (pessimist) to calculate the ultimate probability of the form being a spam. In this situation, installing new security plugins extends an existing channel and make the final decision more accurate.
+
+With a community of developers who create useful and reliable plugins, and your own production power, you can expect to bootstrap an app with essential features mostly by installing and configuring plugins, and keep the coding work only for the features that are specific and custom your product and cannot be contained in a public general purpose plugin. 
+
+### Channels as the tracker for inter-plugin communication
+
+Do not use any method other than channels for your plugins to communicate with each other. Methods such as global variables, shared files, shared database records, etc. all lead to side-effects and unwanted data corruptions which produce hard-to-find bugs.
+
+Channels have potentially powerful capability in limiting and tracking plugin communications (though not all such capabilities are implemented yet but the potential is there). So by limiting plugin communication you can minimize the bugs the stem from inter-plugin miscommunication and limit the bugs to individual plugins which are usually small and manageable codebase and fixing bug is easier on them compare to a multi-facet complex app.
+
+
+Some important rules:
+-------------------------
+* Each channel is identified by its name. So make sure channel names are unique, or you will add handlers to a wrong channel.
+
+* Glueing handler to a channel *MUST* be done in the init phase, i.e., within the controller *init* method. Similarly, running a channel *MUST* be done after the start phase (when all the plugins are initialized) These rules are to avoid all type of race conditions and broken pipelines.
+
+* Use meaningful kebab-case names for the channels.
+

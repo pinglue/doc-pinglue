@@ -1,0 +1,47 @@
+---
+title: Installing Pinglue plugins
+---
+
+Now that we have three Pinglue plugins, we need to install them on a project (i.e., another npm package) before we can bootstrap them.
+
+Creating a hosting project
+-----------------------------
+
+So, within the folder *@hello-world* create a folder called *main*, which hosts our main project. This project is meant to be our final product (however this final product is produced by using Pinglue bootstrapper to combine various installed Pinglue plugins that come from different sources and authors). 
+
+Convert the empty folder *@hello-world/main* into an npm package using regular `npm init`, and choose the name `@hello-world/main` for it.
+
+Also don't forget to make this package into an ES6 module by adding the module type:
+
+*@hello-world/main/package.json*
+```json
+{
+    "name": "@hello-world/main",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+}
+```
+
+<Note>There is no need to create a pg.yaml file, since this is a project and not a Pinglue package or plugin</Note>
+
+Installing Plugins on the project
+-------------------------------------
+This step should be familiar in the software world; you have a software (like an app or website), and you install plugins on it to add more features and capabilities to it. 
+
+We do the same here. At the moment we have an empty project. Lets install the three plugins we created in previous sections:
+
+*from monorepo root:*
+```shell
+npm run addto @hello-world/hello-pl @hello-world/main
+npm run addto @hello-world/hello-pl2 @hello-world/main
+npm run addto @hello-world/hello-pl3 @hello-world/main
+npm run bt
+```
+
