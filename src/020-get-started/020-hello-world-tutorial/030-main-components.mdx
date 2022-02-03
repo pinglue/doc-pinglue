@@ -4,7 +4,7 @@ title: Controller, hub and plugins
 
 Controller overview
 ---------------------
-Controller is the building block a Pinglue app. In fact, you can imagine a Pinglue app as a collection of controllers that are all connected to a single component called *hub*. 
+Controllers are building blocks in Pinglue apps. In fact, you can imagine a Pinglue app as a collection of controllers that are all connected to a single component called *hub*. 
 
 ![](img/pg-app-diagram1.png)
 
@@ -127,7 +127,7 @@ Add an *export* expression to your package.json to introduce an export path (for
 
 The above *package.json* states that our package exports the module defined at `./lib/route1/index.js` from the route `./route1`. 
 
-Now we want to export our controller from this module. so create th file `./lib/route1/index.js` and copy/paste the minimal controller template with some console.log added to the life cycle methods:
+Now we want to export our controller from this module. so create file `./lib/route1/index.js` and copy/paste the minimal controller template with some console.log added to the life cycle methods:
 
 *@hello-world/hello-pl/lib/route1/index.js*
 ```javascript
