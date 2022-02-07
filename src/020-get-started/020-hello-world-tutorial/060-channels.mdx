@@ -19,12 +19,12 @@ Now every controller, in addition to being able to add handlers to a channel, ca
 
 Lets create a channel called *greeting* in our hello-world app.
 
-Creating channel *greeting*
+Creating channel greeting
 --------------------------------
 Class controller has a method *glue* which allow a controller to glue a handler to channel. In the code below, we modify the route *route1* controller of the package *@hello-world/hello-pl* to glue a handler function to a channel called *greeting*:
 
 *@hello-world/hello-pl/lib/route1/index.js*
-```javascript
+```diff-javascript
 import {Controller} from "pinglue";
 
 export default class extends Controller {
@@ -62,13 +62,13 @@ The main part of the above code is the controller's *glue* method which we used 
 In fact we don't really need to *create* a channel. We can just glue handlers to any channel. If it does not exist it will be created automatically. So the above code kind of creates channel *greeting* within the hub for us.
 
 
-Running channel *greetings*
+Running channel greetings
 -------------------------------
 
 Before discussing more details on how channel *greeting* works, lets *run* this channel from another plugin, say our third plugin, and observe the outcome:
 
 *@hello-world/hello-pl3/lib/route1/index.js*
-```javascript
+```diff-javascript
 import {Controller} from "pinglue";
 
 export default class extends Controller {
@@ -104,7 +104,9 @@ export default class extends Controller {
 Note that we used the method *runA* to run the channel asynchronously (here the last capital A stands for *async*). 
 
 <Tip>
+
 We can run each channel either asynchronously (using *runA* method) or synchronously (using *runS* method). The async variation is more common, and in this tutorial we focus on this method.
+
 </Tip>
 
 Now run the app (at route `route1`) to observe the result. You should see that the outcome of the channel is:
@@ -135,11 +137,19 @@ When a channel is run, it calls all its handlers and passes the params and value
 
 The final outcome of the channel (if there is any), will be calculated based on the return value of its handlers based on some internal function which is called *reducer*. 
 
-<Tip>In computer science, a reducer is any function that converts a set of values to a single value (and thus it is called a reducer). A simple example could be the *sum* function which converts a set of numbers to their sum, like `3,4,5 -> 12`</Tip>
+<Tip>
+    
+In computer science, a reducer is any function that converts a set of values to a single value (and thus it is called a reducer). A simple example could be the *sum* function which converts a set of numbers to their sum, like `3,4,5 -> 12`
+
+</Tip>
 
 Since we did not set any reducer function for the channel *greeting*, it will use the default reducer function, which is called *object-merge*. As the name suggest it uses the regular object merge operation (deep object merge) to merge the outcome of all the handlers to the initial value used to run the channel. 
 
-<Tip>Most channels you use in a Pinglue system will use the default object-merge reducer. Still in some highly particular situation you might need to write your own customized reducer for a channel. </Tip>
+<Tip>
+
+Most channels you use in a Pinglue system will use the default object-merge reducer. Still in some highly particular situation you might need to write your own customized reducer for a channel. 
+
+</Tip>
 
 In the above case of "greeting" channel, the only handler of this channel is the method *greetingHandler* (from the first plugin) which returns the object `{[this.id]: "I hope you are well!"}`. As a side note, the property *this.id* in each controller returns its package id as defined in the *pg.yaml* file. So in this case, the returning object would be the object `{"hello-pl": "I hope you are well!"}`. 
 
@@ -210,7 +220,9 @@ Now run the app at route *route1*, you should see the following outcome as expec
 ```
 
 <Tip>
-    Object-merge reducer *alters* the value object passed by the caller. In fact, the outcome of handlers will be merged directly into it. So in the above we don't really need to save the channel outcome in a separate object; we could just pass an object to *runA* as the value argument and print that object. The result would be same.
+
+Object-merge reducer *alters* the value object passed by the caller. In fact, the outcome of handlers will be merged directly into it. So in the above we don't really need to save the channel outcome in a separate object; we could just pass an object to *runA* as the value argument and print that object. The result would be same.
+
 </Tip>
 
 
@@ -227,7 +239,9 @@ On the other hand the argument *value* is the initial value that is used by the 
 Technically speaking, *value* is also part of the input, and thus should be part of the *param*. The reason that we separate *value* as a separate argument is because it has a special role in the channel's reducer; in fact this value is one of the inputs of the channel's reducer, while other fields in the *params* are not.
 
 <Warn>
-    Do not attempt to modify the value directly from a handler. It will fail! Both params and value arguments are *deep-frozen* objects, meaning no change can be made to them. Pinglue has strict rules to separate data space of different plugins to minimize the bugs that come from side effects and unintentional overwriting. These bugs are hardest to fix! To affect the value passed by the channel runner simply return a value in your handler and leave the rest to the channel reducer to affect the value.
+
+Do not attempt to modify the value directly from a handler. It will fail! Both params and value arguments are *deep-frozen* objects, meaning no change can be made to them. Pinglue has strict rules to separate data space of different plugins to minimize the bugs that come from side effects and unintentional overwriting. These bugs are hardest to fix! To affect the value passed by the channel runner simply return a value in your handler and leave the rest to the channel reducer to affect the value.
+
 </Warn>
 
 In contrast to *params*, the argument *value* might not very needed 

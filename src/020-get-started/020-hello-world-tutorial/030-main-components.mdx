@@ -99,7 +99,7 @@ Since we want to use ES6 (instead of CommonJS) add the following statement to th
 }
 ```
 
-### Step 2: Export a module from path *./route1*
+### Step 2: Export a module from path ./route1
 
 Add an *export* expression to your package.json to introduce an export path (for more info about package export paths refer to [the official guide](https://nodejs.org/api/packages.html#subpath-exports))
 
@@ -235,8 +235,10 @@ export default class extends Controller {
 ```
 
 <Warn>
-    Don't forget the *pg.yaml* file for these two new packages!
-<Warn>
+
+Don't forget the *pg.yaml* file for these two new packages! yOu can use ids `hello-world-pl2` and `hello-world-pl3` for them (or any other unique ids)
+
+</Warn>
 
 That's it. Now we are ready to bootstrap these packages together into an app.
 
