@@ -1,0 +1,102 @@
+---
+title: Package info folder
+id: info-folder
+---
+
+Each package optionally can have a folder *info* in its root folder which contains various useful information which can be used both for its configuration and also for auto-documentation. While optional, it is strongly recommended. 
+
+In this section we describe the structure of this folder. A sample structure would look like:
+
+```
+info
+|____package-intro.md
+|____additional-info.md
+|____routes
+     |____root-route-info.md
+     |____registers.yaml
+     |____uses.yaml
+     |____route1
+          |____route1-info.md
+          |____registers.yaml
+          |____uses.yaml
+
+     |____x
+          |____y
+               |____route-xy-info.md
+               |____registers.yaml
+               |____uses.yaml
+```
+
+Root of info
+---------------
+*info* folder at its root may contain a group of markdown (*.md*) files which describe the package operation in more details (arbitrary names). These files are used to generate document for the package in general. We normally use a single `info.md` for this purpose.
+
+<Note>
+
+The md files will be concatenated together in the alphabetic order of their name. 
+
+</Note>
+
+<Tip>
+
+While for most cases just one single md file should be enough, if you are going to have more than one md file then you may use *numerical* prefixes on the file names to guarantee their correct ordering in the final generated document; for example: `01-intro`, `02-getting-started`, etc.
+
+</Tip>
+
+
+routes folder
+---------------
+The *routes* folder within the *info* contains information for each individual route. The folder structure of the *routes* folder follows the package's routes. For example information for the root route (i.e., `./`) of the package are stored at the root of *routes*, the information for the route `./x/y` of the package is stored at `routes/x/y` and so on.
+
+For each route, we have the following information stored:
+
+1. Any number of markdown files (arbitrary names) to describe the route, in particular its channels workflows. Normally we use a single file *info.md* for this purpose. Similar to the info root, these markdowns are concatenated together in alphabetic order for doc generation purposes.
+
+
+2. file `registers.yaml` contains info about the channels that this route registers in its corresponding hub. The format of this file is explained below. Note that Pinglue *HubFactory* uses these yaml files to register channels when creating hub for this route. At the same time these files are used for generating document for the channels in each route. That means the channels document and the actual channels within the hubs are (hopefully) the same.
+
+3. file `uses.yaml`, a self proclaimed list of channels that this package uses for this route. This helps with dependency verification. This feature will be added in the next version and so its documentation will be moved to that version. 
+
+File register.yaml
+---------------------
+This file describes the channel info for each route as explained above. Now we describe its structure. The general structure of this file can be describe as follows (note that all fields are optional):
+
+
+```yaml
+"<channel-name>":
+  description: "Description for this channel"
+  settings: 
+    # --< channel settings object here > -- 
+  params:
+    # --< json schema of the channels's input params -->
+  value:
+    # --< json schema of the channels's input value -->
+  return:
+    # --< json schema of the channels's output -->
+
+"<another-channel-name>"
+  description: "Description for this channel"
+  settings: 
+    # --< channel settings object here > -- 
+  params:
+    # --< json schema of the channels's input params -->
+  value:
+    # --< json schema of the channels's input value -->
+  return:
+    # --< json schema of the channels's output -->
+
+...  
+
+```
+
+Explanation of each field:
+
+### description
+A text describing the channel. It is recommended that this text focuses more on the channel's individual operation and other descriptions related to the relation of this channel to others and the channel workflows that this channels is involved in all be moved to the md file(s) for this route. 
+
+### settings
+This is the *channel settings* object for this channel. For more info on this object and its structure refer to the [channel's section](:channels)
+
+### params, value, return
+All these fields contain the schema descriptions for their corresponding argument. We use [json schema](https://json-schema.org/) for now to describe the schema, though in the future we may support [json type definition](https://jsontypedef.com/) as well.
+
